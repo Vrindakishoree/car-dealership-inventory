@@ -4,6 +4,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException, Depends
 from sqlmodel import Session, select
 import bcrypt
+from typing import List
 
 from app.database import create_db_and_tables, get_session, engine
 from app.models import User, UserRegister
@@ -57,3 +58,11 @@ def add_vehicle(
         session.commit()
         session.refresh(vehicle)
         return vehicle
+
+
+
+@app.get("/api/vehicles", response_model=List[Vehicle])
+def get_vehicles(current_user_email: str = Depends(get_current_user_email)):
+    with Session(engine) as session:
+        vehicles = session.exec(select(Vehicle)).all()
+        return vehicles

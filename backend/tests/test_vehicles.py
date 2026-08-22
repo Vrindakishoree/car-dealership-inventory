@@ -47,3 +47,29 @@ def test_add_vehicle_with_valid_token_succeeds():
         assert data["make"] == "Toyota"
         assert data["quantity"] == 5
         assert "id" in data
+
+def test_get_all_vehicles_returns_list():
+    """Listing vehicles should return all vehicles that have been added."""
+    with TestClient(app) as client:
+        token = get_auth_token(client)
+        client.post(
+            "/api/vehicles",
+            json={"make": "Toyota", "model": "Corolla", "category": "Sedan", "price": 22000, "quantity": 5},
+            headers={"Authorization": f"Bearer {token}"},
+        )
+        client.post(
+            "/api/vehicles",
+            json={"make": "Honda", "model": "Civic", "category": "Sedan", "price": 21000, "quantity": 3},
+            headers={"Authorization": f"Bearer {token}"},
+        )
+
+        response = client.get(
+            "/api/vehicles",
+            headers={"Authorization": f"Bearer {token}"},
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert len(data) == 2
+        makes = [v["make"] for v in data]
+        assert "Toyota" in makes
+        assert "Honda" in makes
