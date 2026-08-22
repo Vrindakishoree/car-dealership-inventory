@@ -96,3 +96,44 @@ def search_vehicles(
 
         vehicles = session.exec(query).all()
         return vehicles
+
+@app.put("/api/vehicles/{vehicle_id}", response_model=Vehicle)
+def update_vehicle(
+    vehicle_id: int,
+    vehicle_data: VehicleCreate,
+    current_user_email: str = Depends(get_current_user_email),
+):
+    with Session(engine) as session:
+        vehicle = session.get(Vehicle, vehicle_id)
+        if not vehicle:
+            raise HTTPException(status_code=404, detail="Vehicle not found")
+
+        vehicle.make = vehicle_data.make
+        vehicle.model = vehicle_data.model
+        vehicle.category = vehicle_data.category
+        vehicle.price = vehicle_data.price
+        vehicle.quantity = vehicle_data.quantity
+
+        session.add(vehicle)
+        session.commit()
+        session.refresh(vehicle)
+        return vehicle
+
+
+@app.post("/api/vehicles/{vehicle_id}/purchase", response_model=Vehicle)
+def purchase_vehicle(
+    vehicle_id: int,
+    current_user_email: str = Depends(get_current_user_email),
+):
+    with Session(engine) as session:
+        vehicle = session.get(Vehicle, vehicle_id)
+        if not vehicle:
+            raise HTTPException(status_code=404, detail="Vehicle not found")
+        if vehicle.quantity <= 0:
+            raise HTTPException(status_code=400, detail="Vehicle is out of stock")
+
+        vehicle.quantity -= 1
+        session.add(vehicle)
+        session.commit()
+        session.refresh(vehicle)
+        return vehicle

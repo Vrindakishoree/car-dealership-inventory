@@ -23,6 +23,16 @@ def get_auth_token(client):
     return response.json()["access_token"]
 
 
+def add_test_vehicle(client, token):
+    """Helper: adds a standard test vehicle, returns its id."""
+    response = client.post(
+        "/api/vehicles",
+        json={"make": "Toyota", "model": "Corolla", "category": "Sedan", "price": 22000, "quantity": 5},
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    return response.json()["id"]
+
+
 def test_add_vehicle_requires_authentication():
     """Adding a vehicle without a token should be rejected."""
     with TestClient(app) as client:
@@ -124,3 +134,50 @@ def test_search_vehicles_by_price_range():
         data = response.json()
         assert len(data) == 1
         assert data[0]["make"] == "Porsche"
+
+
+def test_update_vehicle_succeeds():
+    """A logged-in user should be able to update a vehicle's details."""
+    with TestClient(app) as client:
+        token = get_auth_token(client)
+        vehicle_id = add_test_vehicle(client, token)
+
+        response = client.put(
+            f"/api/vehicles/{vehicle_id}",
+            json={"make": "Toyota", "model": "Corolla", "category": "Sedan", "price": 23000, "quantity": 5},
+            headers={"Authorization": f"Bearer {token}"},
+        )
+        assert response.status_code == 200
+        assert response.json()["price"] == 23000
+
+
+def test_purchase_vehicle_decreases_quantity():
+    """Purchasing a vehicle should decrease its quantity by 1."""
+    with TestClient(app) as client:
+        token = get_auth_token(client)
+        vehicle_id = add_test_vehicle(client, token)
+
+        response = client.post(
+            f"/api/vehicles/{vehicle_id}/purchase",
+            headers={"Authorization": f"Bearer {token}"},
+        )
+        assert response.status_code == 200
+        assert response.json()["quantity"] == 4
+
+
+def test_purchase_vehicle_fails_when_out_of_stock():
+    """Purchasing a vehicle with 0 quantity should be rejected."""
+    with TestClient(app) as client:
+        token = get_auth_token(client)
+        response = client.post(
+            "/api/vehicles",
+            json={"make": "Ferrari", "model": "F8", "category": "Sports", "price": 280000, "quantity": 0},
+            headers={"Authorization": f"Bearer {token}"},
+        )
+        vehicle_id = response.json()["id"]
+
+        response = client.post(
+            f"/api/vehicles/{vehicle_id}/purchase",
+            headers={"Authorization": f"Bearer {token}"},
+        )
+        assert response.status_code == 400
