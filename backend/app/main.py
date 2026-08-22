@@ -1,7 +1,7 @@
-from app.auth import create_access_token
-from app.models import User, UserRegister, UserLogin
+from app.auth import create_access_token, get_current_user_email
+from app.models import User, UserRegister, UserLogin, Vehicle, VehicleCreate
 from contextlib import asynccontextmanager
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Depends
 from sqlmodel import Session, select
 import bcrypt
 
@@ -45,3 +45,15 @@ def login(credentials: UserLogin):
 
         token = create_access_token(data={"sub": user.email})
         return {"access_token": token, "token_type": "bearer"}
+
+@app.post("/api/vehicles", status_code=201)
+def add_vehicle(
+    vehicle_data: VehicleCreate,
+    current_user_email: str = Depends(get_current_user_email),
+):
+    with Session(engine) as session:
+        vehicle = Vehicle(**vehicle_data.model_dump())
+        session.add(vehicle)
+        session.commit()
+        session.refresh(vehicle)
+        return vehicle

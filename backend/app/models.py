@@ -16,3 +16,24 @@ class UserRegister(BaseModel):
 class UserLogin(BaseModel):
     email: str
     password: str  
+
+
+from typing import Optional
+from sqlmodel import SQLModel, Field
+
+
+class Vehicle(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    make: str
+    model: str
+    category: str
+    price: float
+    quantity: int = Field(default=0)
+
+
+class VehicleCreate(BaseModel):
+    make: str
+    model: str
+    category: str
+    price: float
+    quantity: int
