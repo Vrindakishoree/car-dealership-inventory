@@ -5,6 +5,7 @@ from fastapi import FastAPI, HTTPException, Depends
 from sqlmodel import Session, select
 import bcrypt
 from typing import List
+from typing import Optional
 
 from app.database import create_db_and_tables, get_session, engine
 from app.models import User, UserRegister
@@ -65,4 +66,33 @@ def add_vehicle(
 def get_vehicles(current_user_email: str = Depends(get_current_user_email)):
     with Session(engine) as session:
         vehicles = session.exec(select(Vehicle)).all()
+        return vehicles
+
+    
+
+
+@app.get("/api/vehicles/search", response_model=List[Vehicle])
+def search_vehicles(
+    make: Optional[str] = None,
+    model: Optional[str] = None,
+    category: Optional[str] = None,
+    min_price: Optional[float] = None,
+    max_price: Optional[float] = None,
+    current_user_email: str = Depends(get_current_user_email),
+):
+    with Session(engine) as session:
+        query = select(Vehicle)
+
+        if make:
+            query = query.where(Vehicle.make == make)
+        if model:
+            query = query.where(Vehicle.model == model)
+        if category:
+            query = query.where(Vehicle.category == category)
+        if min_price is not None:
+            query = query.where(Vehicle.price >= min_price)
+        if max_price is not None:
+            query = query.where(Vehicle.price <= max_price)
+
+        vehicles = session.exec(query).all()
         return vehicles

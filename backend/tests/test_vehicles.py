@@ -48,6 +48,7 @@ def test_add_vehicle_with_valid_token_succeeds():
         assert data["quantity"] == 5
         assert "id" in data
 
+
 def test_get_all_vehicles_returns_list():
     """Listing vehicles should return all vehicles that have been added."""
     with TestClient(app) as client:
@@ -73,3 +74,53 @@ def test_get_all_vehicles_returns_list():
         makes = [v["make"] for v in data]
         assert "Toyota" in makes
         assert "Honda" in makes
+
+
+def test_search_vehicles_by_make():
+    """Searching by make should return only matching vehicles."""
+    with TestClient(app) as client:
+        token = get_auth_token(client)
+        client.post(
+            "/api/vehicles",
+            json={"make": "Toyota", "model": "Corolla", "category": "Sedan", "price": 22000, "quantity": 5},
+            headers={"Authorization": f"Bearer {token}"},
+        )
+        client.post(
+            "/api/vehicles",
+            json={"make": "Honda", "model": "Civic", "category": "Sedan", "price": 21000, "quantity": 3},
+            headers={"Authorization": f"Bearer {token}"},
+        )
+
+        response = client.get(
+            "/api/vehicles/search?make=Toyota",
+            headers={"Authorization": f"Bearer {token}"},
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert len(data) == 1
+        assert data[0]["make"] == "Toyota"
+
+
+def test_search_vehicles_by_price_range():
+    """Searching by min/max price should return only vehicles in that range."""
+    with TestClient(app) as client:
+        token = get_auth_token(client)
+        client.post(
+            "/api/vehicles",
+            json={"make": "Toyota", "model": "Corolla", "category": "Sedan", "price": 22000, "quantity": 5},
+            headers={"Authorization": f"Bearer {token}"},
+        )
+        client.post(
+            "/api/vehicles",
+            json={"make": "Porsche", "model": "911", "category": "Sports", "price": 120000, "quantity": 1},
+            headers={"Authorization": f"Bearer {token}"},
+        )
+
+        response = client.get(
+            "/api/vehicles/search?min_price=100000&max_price=150000",
+            headers={"Authorization": f"Bearer {token}"},
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert len(data) == 1
+        assert data[0]["make"] == "Porsche"
