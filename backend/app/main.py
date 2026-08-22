@@ -1,4 +1,4 @@
-from app.auth import create_access_token, get_current_user_email
+from app.auth import create_access_token, get_current_user_email, get_current_admin_user
 from app.models import User, UserRegister, UserLogin, Vehicle, VehicleCreate
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException, Depends
@@ -133,6 +133,38 @@ def purchase_vehicle(
             raise HTTPException(status_code=400, detail="Vehicle is out of stock")
 
         vehicle.quantity -= 1
+        session.add(vehicle)
+        session.commit()
+        session.refresh(vehicle)
+        return vehicle
+
+@app.delete("/api/vehicles/{vehicle_id}")
+def delete_vehicle(
+    vehicle_id: int,
+    current_user_email: str = Depends(get_current_admin_user),
+):
+    with Session(engine) as session:
+        vehicle = session.get(Vehicle, vehicle_id)
+        if not vehicle:
+            raise HTTPException(status_code=404, detail="Vehicle not found")
+
+        session.delete(vehicle)
+        session.commit()
+        return {"message": "Vehicle deleted successfully"}
+
+
+@app.post("/api/vehicles/{vehicle_id}/restock", response_model=Vehicle)
+def restock_vehicle(
+    vehicle_id: int,
+    amount: int,
+    current_user_email: str = Depends(get_current_admin_user),
+):
+    with Session(engine) as session:
+        vehicle = session.get(Vehicle, vehicle_id)
+        if not vehicle:
+            raise HTTPException(status_code=404, detail="Vehicle not found")
+
+        vehicle.quantity += amount
         session.add(vehicle)
         session.commit()
         session.refresh(vehicle)

@@ -5,6 +5,10 @@ from dotenv import load_dotenv
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError, jwt
+from sqlmodel import Session, select
+
+from app.database import engine
+from app.models import User
 
 load_dotenv()
 
@@ -39,3 +43,17 @@ def get_current_user_email(token: str = Depends(oauth2_scheme)) -> str:
         return email
     except JWTError:
         raise credentials_exception
+
+
+def get_current_admin_user(
+    current_user_email: str = Depends(get_current_user_email),
+) -> str:
+    """Ensures the current user is an admin. Raises 403 if not."""
+    with Session(engine) as session:
+        user = session.exec(select(User).where(User.email == current_user_email)).first()
+        if not user or not user.is_admin:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="This action requires admin privileges",
+            )
+        return current_user_email

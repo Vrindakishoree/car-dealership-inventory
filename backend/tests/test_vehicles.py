@@ -1,7 +1,8 @@
 from fastapi.testclient import TestClient
 from app.main import app
 from app.database import engine
-from sqlmodel import SQLModel
+from app.models import User
+from sqlmodel import SQLModel, Session, select
 
 
 def setup_function():
@@ -11,7 +12,7 @@ def setup_function():
 
 
 def get_auth_token(client):
-    """Helper: registers and logs in a user, returns their JWT token."""
+    """Helper: registers and logs in a regular user, returns their JWT token."""
     client.post(
         "/api/auth/register",
         json={"email": "dealer@example.com", "password": "password123"},
@@ -19,6 +20,25 @@ def get_auth_token(client):
     response = client.post(
         "/api/auth/login",
         json={"email": "dealer@example.com", "password": "password123"},
+    )
+    return response.json()["access_token"]
+
+
+def get_admin_token(client):
+    """Helper: registers a user, manually promotes them to admin in the DB, logs in, returns token."""
+    client.post(
+        "/api/auth/register",
+        json={"email": "admin@example.com", "password": "adminpass123"},
+    )
+    with Session(engine) as session:
+        user = session.exec(select(User).where(User.email == "admin@example.com")).first()
+        user.is_admin = True
+        session.add(user)
+        session.commit()
+
+    response = client.post(
+        "/api/auth/login",
+        json={"email": "admin@example.com", "password": "adminpass123"},
     )
     return response.json()["access_token"]
 
@@ -181,3 +201,45 @@ def test_purchase_vehicle_fails_when_out_of_stock():
             headers={"Authorization": f"Bearer {token}"},
         )
         assert response.status_code == 400
+
+
+def test_delete_vehicle_requires_admin():
+    """A regular (non-admin) user should not be able to delete a vehicle."""
+    with TestClient(app) as client:
+        token = get_auth_token(client)
+        vehicle_id = add_test_vehicle(client, token)
+
+        response = client.delete(
+            f"/api/vehicles/{vehicle_id}",
+            headers={"Authorization": f"Bearer {token}"},
+        )
+        assert response.status_code == 403
+
+
+def test_delete_vehicle_succeeds_for_admin():
+    """An admin user should be able to delete a vehicle."""
+    with TestClient(app) as client:
+        regular_token = get_auth_token(client)
+        vehicle_id = add_test_vehicle(client, regular_token)
+
+        admin_token = get_admin_token(client)
+        response = client.delete(
+            f"/api/vehicles/{vehicle_id}",
+            headers={"Authorization": f"Bearer {admin_token}"},
+        )
+        assert response.status_code == 200
+
+
+def test_restock_vehicle_succeeds_for_admin():
+    """An admin should be able to restock a vehicle, increasing its quantity."""
+    with TestClient(app) as client:
+        regular_token = get_auth_token(client)
+        vehicle_id = add_test_vehicle(client, regular_token)
+
+        admin_token = get_admin_token(client)
+        response = client.post(
+            f"/api/vehicles/{vehicle_id}/restock?amount=10",
+            headers={"Authorization": f"Bearer {admin_token}"},
+        )
+        assert response.status_code == 200
+        assert response.json()["quantity"] == 15
