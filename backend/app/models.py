@@ -12,3 +12,7 @@ class User(SQLModel, table=True):
 class UserRegister(BaseModel):
     email: str
     password: str
+
+class UserLogin(BaseModel):
+    email: str
+    password: str  
