@@ -6,6 +6,7 @@ from sqlmodel import Session, select
 import bcrypt
 from typing import List
 from typing import Optional
+from fastapi.middleware.cors import CORSMiddleware
 
 from app.database import create_db_and_tables, get_session, engine
 from app.models import User, UserRegister
@@ -18,6 +19,14 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="Car Dealership Inventory API", lifespan=lifespan)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:5173"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 @app.post("/api/auth/register", status_code=201)
