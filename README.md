@@ -120,6 +120,19 @@ Specifically, Claude helped me:
 - Design the AuthContext pattern for sharing login state across the app
 - Build individual components (VehicleCard, AddVehicleForm, SearchBar) and wire them into the Dashboard
 
+- ## Screenshots
+
+**Login Page**
+<img width="960" height="540" alt="Screenshot 2026-08-23 211724" src="https://github.com/user-attachments/assets/b0e66962-b69b-4693-9830-72ec2e9eceff" />
+
+**Vehicle Dashboard**
+<img width="960" height="540" alt="Screenshot 2026-08-23 165656" src="https://github.com/user-attachments/assets/9ff3f1fb-a856-4afa-ab8f-39c69e26cdf8" />
+
+
+**Add Vehicle Form**
+<img width="960" height="540" alt="Screenshot 2026-08-23 170226" src="https://github.com/user-attachments/assets/469f34bf-ab75-4e49-92a9-917b0cf95a12" />
+
+
 **Reflection:**
 
 Using AI this way meant I always understood *why* a piece of code worked, not just that it worked — every fix came with an explanation, and I was the one running commands, reading errors, and confirming behavior at each step. It significantly sped up scaffolding (auth, routing, boilerplate) and was especially useful for debugging, since some of the errors I hit (deprecated FastAPI patterns, dependency version mismatches) would have taken much longer to research alone. At the same time, I made sure to actually test and verify each change myself rather than blindly trusting generated code — several early attempts had bugs (like incorrect status codes or shared test state) that we caught and fixed together through the actual test suite, not by assumption.
