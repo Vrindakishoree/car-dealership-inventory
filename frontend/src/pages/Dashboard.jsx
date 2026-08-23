@@ -3,6 +3,7 @@ import { useAuth } from "../context/AuthContext";
 import { api } from "../services/api";
 import VehicleCard from "../components/VehicleCard";
 import AddVehicleForm from "../components/AddVehicleForm";
+import SearchBar from "../components/SearchBar";
 
 function Dashboard() {
   const { logout, isAdmin } = useAuth();
@@ -21,6 +22,18 @@ function Dashboard() {
       setLoading(false);
     }
   };
+
+  const handleSearch = async (filters) => {
+  try {
+    setLoading(true);
+    const data = await api.searchVehicles(filters);
+    setVehicles(data);
+  } catch (err) {
+    setError(err.message);
+  } finally {
+    setLoading(false);
+  }
+};
 
   useEffect(() => {
     loadVehicles();
