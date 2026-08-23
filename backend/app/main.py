@@ -178,3 +178,11 @@ def restock_vehicle(
         session.commit()
         session.refresh(vehicle)
         return vehicle
+
+@app.get("/api/auth/me")
+def get_me(current_user_email: str = Depends(get_current_user_email)):
+    with Session(engine) as session:
+        user = session.exec(select(User).where(User.email == current_user_email)).first()
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        return {"email": user.email, "is_admin": user.is_admin}

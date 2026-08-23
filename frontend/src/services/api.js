@@ -32,6 +32,8 @@ export const api = {
       body: JSON.stringify({ email, password }),
     }),
 
+    getMe: () => request("/api/auth/me"),
+
   login: (email, password) =>
     request("/api/auth/login", {
       method: "POST",
